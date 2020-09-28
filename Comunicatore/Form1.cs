@@ -14,6 +14,7 @@ using System.IO;
 using CsvHelper;
 using System.Globalization;
 using System.Diagnostics;
+using System.Data.Entity;
 
 namespace Comunicatore
 {
@@ -41,16 +42,73 @@ namespace Comunicatore
                 csv.Configuration.Delimiter = ";";
                 var righe = csv.GetRecords<ClasseCsv>();
                 int i = 1;
+
+                //
+                //{
+                //    int count = db.Tests.SelectMany<Test>;
+                //    db.Tests.Add(new Test { GuidGlobale = Guid.Empty, GuidProva = Guid.Empty, Passo = 0, Trasferito = true });
+                    
+                //}
+                
+               
                 foreach (ClasseCsv riga in righe)
                 {
-                    Debug.Print(riga.guid1+" ; "+ riga.guid2 + " ; " + riga.passo);
-                    i++;
+                    Guid guid;
+
+                    guid = Guid.Parse(riga.guidGuiddiPasso);
+                    //verifica esistenza del guid globale nel database
+
+                    using (var db = new DbTestContext())
+                    {
+                                                var count = db.Tests.Where(o => o.Trasferito == true).Count();
+
+                     }
+
+                    using (var db = new DbTestContext())
+                    {
+                        var query = from r in db.Tests
+                                    where r.GuidGlobale == guid
+                                    select r;
+
+                        //inserimento dei test nel database (come non trasferiti)
+
+
+
+                        //come si concnatena
+
+                        Debug.Print(riga.guidGuiddiProva + " ; " + riga.guidGuiddiPasso + " ; " + riga.passo);
+                        i++;
+                    }
+
                 }
+
 
             }
 
 
+
+
         }
+
+        class Test
+        {
+            [System.ComponentModel.DataAnnotations.Key]
+            public Guid GuidGlobale { get; set; }
+            public Guid GuidProva { get; set; }
+            public string TestNome { get; set; }
+            public bool Trasferito { get; set; }
+            public int Passo { get; set; }
+        }
+
+        class DbTestContext : DbContext
+        {
+            public DbSet<Test> Tests { get; set; }
+        }
+
+
+
+        //prove varie
+
 
         private void Test_LeggiDb1()
         {
@@ -73,13 +131,6 @@ namespace Comunicatore
             dataGridView1.DataSource = myDs.Tables[0];
 
         }
-        private void Test_LeggiDb2()
-        {
-
-
-
-        }
-
 
     }
 }
