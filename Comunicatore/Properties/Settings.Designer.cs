@@ -25,22 +25,13 @@ namespace Comunicatore.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public string Prova {
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool filtragiorni {
             get {
-                return ((string)(this["Prova"]));
+                return ((bool)(this["filtragiorni"]));
             }
             set {
-                this["Prova"] = value;
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string Prova2 {
-            get {
-                return ((string)(this["Prova2"]));
+                this["filtragiorni"] = value;
             }
         }
     }

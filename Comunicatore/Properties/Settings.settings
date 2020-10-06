@@ -2,11 +2,8 @@
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="Comunicatore.Properties" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
-    <Setting Name="Prova" Type="System.String" Scope="User">
-      <Value Profile="(Default)">True</Value>
-    </Setting>
-    <Setting Name="Prova2" Type="System.String" Scope="Application">
-      <Value Profile="(Default)" />
+    <Setting Name="filtragiorni" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
     </Setting>
   </Settings>
 </SettingsFile>

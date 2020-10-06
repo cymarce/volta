@@ -7,7 +7,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-
 using System.Data.SqlClient;
 using System.Data.OleDb;
 using System.IO;
@@ -15,6 +14,7 @@ using CsvHelper;
 using System.Globalization;
 using System.Diagnostics;
 using System.Data.Entity;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Comunicatore
 {
@@ -39,98 +39,101 @@ namespace Comunicatore
             using (var reader = new StreamReader("CSVdiEsempio\\P18504_TEST PVC.CSV"))
             using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
             {
+
+                //acquisizione riga per riga del csv, controllo esistenza del id di prova ed eventuale inserimento nel tabase
+                //TODO se possibile leggere all'indietro -- non è possibile
+                //TODO prescartare le righe in basa alla data, p.e. in base ad un numero massimo di giorni all'indietro
                 csv.Configuration.Delimiter = ";";
                 var righe = csv.GetRecords<ClasseCsv>();
-                int i = 1;
 
                 //
                 //{
                 //    int count = db.Tests.SelectMany<Test>;
                 //    db.Tests.Add(new Test { GuidGlobale = Guid.Empty, GuidProva = Guid.Empty, Passo = 0, Trasferito = true });
-                    
+
                 //}
-                
-               
+
+
+
                 foreach (ClasseCsv riga in righe)
                 {
-                    Guid guid;
 
-                    guid = Guid.Parse(riga.guidGuiddiPasso);
-                    //verifica esistenza del guid globale nel database
-
-                    using (var db = new DbTestContext())
+                    //verifica data
+                    //
+                    //
+                    //
+                    if (Properties.Settings.Default.filtragiorni)
                     {
-                                                var count = db.Tests.Where(o => o.Trasferito == true).Count();
-
-                     }
-
-                    using (var db = new DbTestContext())
-                    {
-                        var query = from r in db.Tests
-                                    where r.GuidGlobale == guid
-                                    select r;
-
-                        //inserimento dei test nel database (come non trasferiti)
-
-
-
-                        //come si concnatena
-
-                        Debug.Print(riga.guidGuiddiProva + " ; " + riga.guidGuiddiPasso + " ; " + riga.passo);
-                        i++;
+                        //se la data è filtrata si passa la prossimo record
+                        continue;
                     }
 
+
+                    Guid guid = riga.guidGuiddiPasso;
+                    //guid = Guid.Parse(riga.guidGuiddiPasso);
+
+
+
+                    using (var db = new DbTestContext())
+                    {
+                        
+                        //verifica esistenza del guid prova nel database?
+                        var count = db.Tests.Where(o => o.GuidProva == guid).Count();
+
+                        if (count == 0)
+                        {
+                            //inserimento del dato nel db
+                            Test prova = new Test();
+                            prova.GuidGlobale = riga.guidGuiddiProva;
+                            prova.GuidProva = riga.guidGuiddiPasso;
+                            prova.metodo = riga.metodo;
+                            prova.Orario = riga.Orario;
+                            prova.esitototale = riga.esitototale;
+                            prova.trasferito = false;
+
+                            db.Tests.Add(prova);
+                            Debug.Print("--inserimento:" + riga.guidGuiddiPasso + " ; " + riga.passo);
+                        }
+                        db.SaveChanges();
+                    }
                 }
-
-
             }
-
-
-
-
         }
+    }
 
-        class Test
-        {
-            [System.ComponentModel.DataAnnotations.Key]
-            public Guid GuidGlobale { get; set; }
-            public Guid GuidProva { get; set; }
-            public string TestNome { get; set; }
-            public bool Trasferito { get; set; }
-            public int Passo { get; set; }
-        }
+    class DbTestContext : DbContext 
+    {
+        public DbTestContext() : base("TestDB")
+            {}
 
-        class DbTestContext : DbContext
-        {
-            public DbSet<Test> Tests { get; set; }
-        }
+        public DbSet<Test> Tests { get; set; }
+    }
 
 
+    class Test
+    {
+        [System.ComponentModel.DataAnnotations.Key, Column(Order = 0)]
+        public Guid GuidGlobale { get; set; }
 
-        //prove varie
+        [System.ComponentModel.DataAnnotations.Key, Column(Order = 1)]
+        public Guid GuidProva { get; set; }
 
+        public string metodo { get; set; }
 
-        private void Test_LeggiDb1()
-        {
+        public int chiavedimetodo { get; set; }
 
-            OleDbDataAdapter myDa;
-            OleDbConnection myCn;
-            OleDbCommand myCm;
-            DataSet myDs = new DataSet();
+        public int passo { get; set; }
 
-            myCn = new OleDbConnection("Provider=Microsoft.Jet.OLEDB.4.0;Data Source=C:\\Users\\Marco\\Desktop\\UAFClientConnectorLibrary\\Comunicatore\\CSVdiEsempio\\;Extended Properties=\"Text;HDR=Yes;Delimited(;)\"");
-            myCm = new OleDbCommand("Select * from [P18504_Test2.csv]", myCn);
-            myDa = new OleDbDataAdapter(myCm);
+        public DateTime Orario { get; set; }
 
-            myCn.Open();
+        public string esitopasso { get; set; }
 
+        public int chiaveesitopasso { get; set; }
 
-            myDa.Fill(myDs);
+        public string esitototale { get; set; }
 
+        public int chiavesitototale { get; set; }
 
-            dataGridView1.DataSource = myDs.Tables[0];
-
-        }
-
+        public bool trasferito { get; set; }
     }
 }
