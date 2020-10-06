@@ -20,9 +20,23 @@ namespace Comunicatore
 {
     public partial class Form1 : Form
     {
+    
+        public DbTestContext db;
+
+
         public Form1()
         {
             InitializeComponent();
+            try
+            {
+
+                db = new DbTestContext();
+                db.Tests.Load();
+
+                this.dataGridView1.DataSource = db.Tests.Local.ToBindingList();
+            }
+            catch
+            { }
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -74,8 +88,6 @@ namespace Comunicatore
 
 
 
-                    using (var db = new DbTestContext())
-                    {
                         
                         //verifica esistenza del guid prova nel database?
                         var count = db.Tests.Where(o => o.GuidProva == guid).Count();
@@ -95,13 +107,24 @@ namespace Comunicatore
                             Debug.Print("--inserimento:" + riga.guidGuiddiPasso + " ; " + riga.passo);
                         }
                         db.SaveChanges();
-                    }
                 }
             }
         }
+
+        private void notifyIcon1_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+
+        }
+
+        private void infoToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+            FormInfo frm = new FormInfo();
+            frm.ShowDialog();
+        }
     }
 
-    class DbTestContext : DbContext 
+    public class DbTestContext : DbContext 
     {
         public DbTestContext() : base("TestDB")
             {}
@@ -110,7 +133,7 @@ namespace Comunicatore
     }
 
 
-    class Test
+    public class Test
     {
         [System.ComponentModel.DataAnnotations.Key, Column(Order = 0)]
         public Guid GuidGlobale { get; set; }
