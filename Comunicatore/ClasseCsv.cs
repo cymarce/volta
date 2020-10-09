@@ -14,7 +14,7 @@ namespace Comunicatore
         public Guid guidGuiddiProva { get; set; }
 
         [Index(1)][Key]
-        public Guid guidGuiddiPasso { get; set; }
+        public Guid guidGuiddiPassoDiProva { get; set; }
         
         [Index(3)]
         public string metodo { get; set; }
