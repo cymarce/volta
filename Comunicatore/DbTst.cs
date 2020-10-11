@@ -6,9 +6,7 @@ using System.Threading.Tasks;
 
 namespace Comunicatore
 {
-    class Globali
+    class DbTst
     {
-        public  static Form1 Mainform;
-        public static bool InAvvio;
     }
 }

@@ -33,6 +33,7 @@ namespace Comunicatore
 
         public Form1()
         {
+            Globali.InAvvio = true;
             InitializeComponent();
 
             Globali.Mainform = this;
@@ -56,6 +57,11 @@ namespace Comunicatore
             }
 
             delgato = new tscriptDelegate(rtxtLog_AggiungiRiga);
+
+            //Assegnazione valori ai controlli
+            chkAbilitaFile1.Checked = Properties.Settings.Default.File1Abilitato;
+
+            Globali.InAvvio = false;
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -70,7 +76,10 @@ namespace Comunicatore
 
         void TestCsvHelper()
         {
-            using (var reader = new StreamReader("CSVdiEsempio\\P18504_TEST PVC.CSV"))
+
+            string filename;
+            filename = "CSVdiEsempio\\P18504_TEST PVC.CSV";
+            using (var reader = new StreamReader(filename))
             using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
             {
 
@@ -87,7 +96,8 @@ namespace Comunicatore
                     //
                     //
                     //
-                    if (Properties.Settings.Default.filtragiorni)
+                    bool filtra = Properties.Settings.Default.filtragiorni;
+                    if (filtra)
                     {
                         //se la data è filtrata si passa la prossimo record
                         continue;
@@ -99,6 +109,7 @@ namespace Comunicatore
                     //guid = Guid.Parse(riga.guidGuiddiPasso);
 
                     //verifica esistenza del guid prova nel database?
+
                     try {
                         var count = db.Tests.Where(o => (o.GuidProva == riga.guidGuiddiProva) & (o.GuidPassoProva == riga.guidGuiddiPassoDiProva)).Count();
 
@@ -108,19 +119,29 @@ namespace Comunicatore
                             Test prova = new Test();
                             prova.GuidProva= riga.guidGuiddiProva;
                             prova.GuidPassoProva= riga.guidGuiddiPassoDiProva;
+                            prova.passo = riga.passo;
                             prova.metodo = riga.metodo;
                             prova.Orario = riga.Orario;
                             prova.esitototale = riga.esitototale;
+                            prova.esitopasso = riga.esitopasso;
+                            prova.valore1 = riga.valore1;
+                            prova.valore1unitàdimisura = riga.valore1unitàdimisura;
+                            prova.valore2 = riga.valore2;
+                            prova.valore2unitàdimisura = riga.valore2unitàdimisura;
+                            prova.metodo = riga.metodo;
+                            prova.numerodiserie = riga.numerodiserie;
+                            prova.numeroprogetto = riga.numeroprogetto;
+                            prova.numeroprova = riga.contatoreprova;
+                            prova.nomecsv = Path.GetFileNameWithoutExtension(filename);
                             prova.trasferito = false;
 
                             db.Tests.Add(prova);
-                            Debug.Print("--inserimento:" + riga.guidGuiddiPassoDiProva + " ; " + riga.passo);
                         }
-                        db.SaveChanges();
                     }
                     catch (Exception ex)                     {
                         log.Debug(ex);
                     }
+                    db.SaveChanges();
 
                 }
             }
@@ -162,36 +183,56 @@ namespace Comunicatore
             textBox.AppendText(text);
         }
 
-        private void testsBindingNavigatorSaveItem_Click(object sender, EventArgs e)
-        {
-            this.Validate();
-            this.testsBindingSource.EndEdit();
-            this.tableAdapterManager.UpdateAll(this.testDBDataSet);
 
+
+        private void btnSelectFile1_Click(object sender, EventArgs e)
+        {
+            String File1;
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                File1 = openFileDialog1.FileName;
+                txtFile1.Text = File1;
+                btnSalvaFile1.Enabled = true;
+                btnAnnullaFile1.Enabled = true;
+                
+            }
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private void btnSalvaFile1_Click(object sender, EventArgs e)
         {
-            // TODO: questa riga di codice carica i dati nella tabella 'testDBDataSet.Tests'. È possibile spostarla o rimuoverla se necessario.
-            this.testsTableAdapter.Fill(this.testDBDataSet.Tests);
+            Properties.Settings.Default.File1 = txtFile1.Text;
+            tabControlForm1.TabPages[1].Text = Path.GetFileName(txtFile1.Text);
+            btnSalvaFile1.Enabled = false;
+            btnAnnullaFile1.Enabled = false;
+        }
 
+        private void btnAnnullaFile1_Click(object sender, EventArgs e)
+        {
+            txtFile1.Text = Properties.Settings.Default.File1;
+            btnSalvaFile1.Enabled = false;
+            btnAnnullaFile1.Enabled = false;
+        }
+
+
+        private void chkAbilitaFile1_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!Globali.InAvvio)
+            {
+                Properties.Settings.Default.File1Abilitato = chkAbilitaFile1.Checked;
+            }
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            db.SaveChanges();
         }
     }
 
 
-    public class DbTestContext : DbContext 
-    {
-        //public DbTestContext() : base("name=Comunicatore.Properties.Settings.TestDBConnectionString")
-                    public DbTestContext() : base("DbTest")
-        {
-            Database.SetInitializer<DbTestContext>(new CreateDatabaseIfNotExists<DbTestContext>());
-        }
-
-        public DbSet<Test> Tests { get; set; }
-    }
 
 
-    public class Test
+
+    public class TestOld
     {
         [System.ComponentModel.DataAnnotations.Key, Column(Order = 0)]
         public Guid GuidProva{ get; set; }
@@ -214,6 +255,24 @@ namespace Comunicatore
         public string esitototale { get; set; }
 
         public int chiavesitototale { get; set; }
+
+        public float valore1 { get; set; }
+        
+        public string valore1unitàdimisura { get; set; }
+
+        public float valore2 { get; set; }
+
+        public string valore2unitàdimisura { get; set; }
+
+        public int numerodiserie { get; set; }
+
+        public int numeroprogetto { get; set; }
+
+        public string barcode { get; set; }
+
+        public int numeroprova { get; set; }
+
+        public string nomecsv { get; set; }
 
         public bool trasferito { get; set; }
     }

@@ -35,14 +35,99 @@ namespace Comunicatore.Properties {
             }
         }
         
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.SpecialSettingAttribute(global::System.Configuration.SpecialSetting.ConnectionString)]
-        [global::System.Configuration.DefaultSettingValueAttribute("Data Source=(LocalDB)\\MSSQLLocalDB;AttachDbFilename=|DataDirectory|\\TestDB.mdf;In" +
-            "tegrated Security=True")]
-        public string TestDBConnectionString {
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string File1 {
             get {
-                return ((string)(this["TestDBConnectionString"]));
+                return ((string)(this["File1"]));
+            }
+            set {
+                this["File1"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string File2 {
+            get {
+                return ((string)(this["File2"]));
+            }
+            set {
+                this["File2"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string File3 {
+            get {
+                return ((string)(this["File3"]));
+            }
+            set {
+                this["File3"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool Monitor {
+            get {
+                return ((bool)(this["Monitor"]));
+            }
+            set {
+                this["Monitor"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool InvioAutomatico {
+            get {
+                return ((bool)(this["InvioAutomatico"]));
+            }
+            set {
+                this["InvioAutomatico"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool File1Abilitato {
+            get {
+                return ((bool)(this["File1Abilitato"]));
+            }
+            set {
+                this["File1Abilitato"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool File2Abilitato {
+            get {
+                return ((bool)(this["File2Abilitato"]));
+            }
+            set {
+                this["File2Abilitato"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool File3Abilitato {
+            get {
+                return ((bool)(this["File3Abilitato"]));
+            }
+            set {
+                this["File3Abilitato"] = value;
             }
         }
     }
