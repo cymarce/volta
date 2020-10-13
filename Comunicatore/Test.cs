@@ -48,7 +48,9 @@ namespace Comunicatore
         public int numeroprova { get; set; }
 
         public string nomecsv { get; set; }
-
+        public string serialegenerato { get; set; }
         public bool trasferito { get; set; }
+        public bool errore { get; set; }
+
     }
 }

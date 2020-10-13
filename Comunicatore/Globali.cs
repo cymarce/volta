@@ -10,5 +10,7 @@ namespace Comunicatore
     {
         public  static Form1 Mainform;
         public static bool InAvvio;
+        public static string dblocation;
+        public static InvioTest Invio;
     }
 }

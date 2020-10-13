@@ -30,7 +30,7 @@
     <ProductName>Imporazione Test</ProductName>
     <PublisherName>Cora srl</PublisherName>
     <SuiteName>CoraVolta</SuiteName>
-    <ApplicationRevision>5</ApplicationRevision>
+    <ApplicationRevision>17</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -132,11 +132,12 @@
       <DependentUpon>FormInfo.cs</DependentUpon>
     </Compile>
     <Compile Include="Globali.cs" />
+    <Compile Include="InvioTest.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Test.cs" />
     <Compile Include="TextBoxAppender.cs" />
-    <Content Include="Log.xml">
+    <Content Include="Configurazione\Log.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <None Include="Resources\Icon1.ico" />
@@ -197,6 +198,24 @@
   <ItemGroup>
     <Folder Include="Migrations\" />
     <Folder Include="Properties\DataSources\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\UAFClientConnectorLibrary\UAFClientConnectorLibrary.csproj">
+      <Project>{ba1e32a9-247c-4de9-bcee-af0818d9dae8}</Project>
+      <Name>UAFClientConnectorLibrary</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <PublishFile Include="Configurazione\Log.xml">
+      <Visible>False</Visible>
+      <Group>
+      </Group>
+      <TargetPath>
+      </TargetPath>
+      <PublishState>Include</PublishState>
+      <IncludeHash>True</IncludeHash>
+      <FileType>File</FileType>
+    </PublishFile>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

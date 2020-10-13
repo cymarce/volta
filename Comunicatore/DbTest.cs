@@ -10,10 +10,12 @@ namespace Comunicatore
 {
     public class DbTestContext : DbContext
     {
-        //public DbTestContext() : base("name=Comunicatore.Properties.Settings.TestDBConnectionString")
-        public DbTestContext() : base("DbTest")
+        public DbTestContext() : base(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=" + Globali.dblocation + @"\TestDB.mdf;Integrated Security=True;Connect Timeout=5")
+        //public DbTestContext() : base("DbTest")
+
+        //public DbTestContext() 
         {
-            Database.SetInitializer<DbTestContext>(new CreateDatabaseIfNotExists<DbTestContext>());
+            //Database.SetInitializer<DbTestContext>(new CreateDatabaseIfNotExists<DbTestContext>());
         }
 
         public DbSet<Test> Tests { get; set; }

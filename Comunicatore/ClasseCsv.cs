@@ -65,7 +65,6 @@ namespace Comunicatore
         [Index(63)]
         public int contatoreprova { get; set; }
 
-
     }
 
 }
