@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 using UAFClientConnectorLibrary.DataTypes;
 using log4net;
 using System.Linq.Expressions;
+using System.Configuration;
+using System.ComponentModel;
+using System.Web.UI.WebControls;
 
 namespace Comunicatore
 {
@@ -17,36 +20,37 @@ namespace Comunicatore
         public InvioTest()
         {
             log = log4net.LogManager.GetLogger("InvioTest");
-
         }
 
-        public  void Invio(string serialnumber, string idmacchina, string programma, string esito, string correnterigidità, string tensionerigidità, string restistenzaisolamento, string tensioneisolamento)
+        public bool Invio(DatiPerInvioTest valori)
         {
 
             try
             {
-                log.Debug("creazione richiesta");
+                log.Info($"Invio esito prova (id {valori.guid}\n\tarchivio:\t{valori.nomeccsv}");
                 var NGtestResult = new NG_TestResultParameter
                 {
-                    SerialNumber = serialnumber,
-                    DescrizioneEsito = esito,
-                    TensioneIsolamento = decimal.Parse(tensioneisolamento),
+                    TensioneIsolamento = decimal.Parse(valori.tensioneisolamento),
+                    ResistenzaIsolamento = decimal.Parse(valori.restistenzaisolamento),
+                    TensioneRigidita = decimal.Parse(valori.tensionerigidità),
+                    CorrenteRigidita = decimal.Parse(valori.correnterigidità),
+
+                    DescrizioneEsito = valori.descrizioneesito,
+                    Esito = valori.esito,
+
+                    SerialNumber = valori.serialnumber,
+                    //IdProgramma = valori.idprogramma,
+                    NomeProgramma = valori.nomeprogramma,
                     CorrenteDiTerra = null,
                     ResistenzaDiTerra = null,
-                    CorrenteRigidita = decimal.Parse(correnterigidità),
-                    ResistenzaIsolamento = decimal.Parse(restistenzaisolamento),
-                    Esito = esito,
-                    TensioneRigidita = decimal.Parse(tensionerigidità),
-                    ID_Macchina = idmacchina,
-                    IdProgramma = null,
-                    NomeProgramma = programma,
+                    ID_Macchina = null,
                     NG_ReleaseSoftwareNfc = null,
                     NG_FotoCurvaAssorbimento = null,
                     NG_FotoLed1 = null,
                     NG_FotoLed2 = null,
 
-                    Assorbimenti = new List<AbsorptionResultParameter>() 
-                    { 
+                    Assorbimenti = new List<AbsorptionResultParameter>()
+                    {
                     new AbsorptionResultParameter
                     {
                         Nome = "AssorbimentoMonofase",
@@ -72,29 +76,33 @@ namespace Comunicatore
                 };
                 try
                 {
-                    var finalMaterial = "FM";
+                    //log.Debug("inizio invio");
+                    var finalMaterial = valori.finalmaterial;
+                    log.Debug($"Dati:FinalMaterial: {finalMaterial} - SerialNumber: {valori.serialnumber} - NomeProgramma: {valori.nomeprogramma} - DescrizioneEsito: {valori.descrizioneesito} - Esito: {valori.esito} - TensioneIsolamento: {valori.tensioneisolamento} - ResistenzaIsolamento: {valori.restistenzaisolamento} - TensioneRigidita: {valori.tensionerigidità} - CorrenteRigidita: {valori.correnterigidità}");
                     var response = Engineering.UAFClientConnectorLibrary.UAFConnector.StaticNG_SendTestResult(NGtestResult, finalMaterial);
                     //Console.WriteLine("Command NG_SendTestResult\n");
                     //Console.WriteLine($"Succeeded: {response.Succeeded}");
                     if (!response.Succeeded)
                     {
                         log.Warn("Invio fallito");
-                        log.Warn($"Error {response.Error.ErrorCode}: {response.Error.ErrorMessage}");
-                                            }
+                        log.Debug($"Error {response.Error.ErrorCode}: {response.Error.ErrorMessage}");
+                        return false;
+                    }
                 }
-                catch (Exception ex)
+                catch (Exception ex)   //errore nella chiamata della libreria - si considera il sistama offline e non vanno segnati i record del db come da evitare
                 {
                     log.Debug("InvioTest - errore servizio");
                     log.Debug(ex);
-                    return;
+                    return false;
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex)  //questa eccezzione deve fare il bubbleling al chiamante per discriminare tra un errore dei parametri ed uno della libreria
             {
-                log.Debug("InvioTest - errore codifica parametri");
+                log.Error("InvioTest - errore codifica parametri");
                 log.Debug(ex);
+                throw new Exception();
             }
-
+            return true;
         }
 
     }

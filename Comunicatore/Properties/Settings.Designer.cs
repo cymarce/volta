@@ -74,12 +74,12 @@ namespace Comunicatore.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool Monitor {
+        public bool MonitoraggioFile {
             get {
-                return ((bool)(this["Monitor"]));
+                return ((bool)(this["MonitoraggioFile"]));
             }
             set {
-                this["Monitor"] = value;
+                this["MonitoraggioFile"] = value;
             }
         }
         
@@ -128,6 +128,18 @@ namespace Comunicatore.Properties {
             }
             set {
                 this["File3Abilitato"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
+        public int giorni {
+            get {
+                return ((int)(this["giorni"]));
+            }
+            set {
+                this["giorni"] = value;
             }
         }
     }

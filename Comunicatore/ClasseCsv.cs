@@ -21,9 +21,6 @@ namespace Comunicatore
 
         [Index(3)]
         public string metodo { get; set; }
-        
-        [Index(4)]
-        public int chiavedimetodo { get; set; }
 
         [Index(7)]
         public string valore1unitàdimisura { get; set; }
@@ -37,33 +34,29 @@ namespace Comunicatore
         [Index(12)]
         public string valore2 { get; set; }
 
-
-        [Index(16)]
+        [Index(16)]  
         public string esitopasso { get; set; }
-
-        [Index(17)]
-        public int chiaveesitopasso { get; set; }
 
         [Index(18)]
         public string esitototale { get; set; }
 
-        [Index(19)]
-        public int echiavesitototale { get; set; }
-
         [Index(23)]
-        public int numerodiserie { get; set; }
+        public string numerodiserie { get; set; }
 
-        [Index(30)]
+        [Index(25)]
+        public string programmadiprova { get; set; }
+
+        [Index(30)] //orario
         public DateTime Orario { get; set; }
 
-        [Index(31)]
+        [Index(31)] //Numero progetto
         public int numeroprogetto { get; set; }
 
-        [Index(54)]
-        public string barcode { get; set; }
+        [Index(36)] //Dati d'ordine1
+        public string datiordine1 { get; set; }
 
-        [Index(63)]
-        public int contatoreprova { get; set; }
+        [Index(37)] //Dati d'ordine1
+        public string datiordine2 { get; set; }
 
     }
 

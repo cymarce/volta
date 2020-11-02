@@ -163,7 +163,6 @@
             this.ShowIcon = false;
             this.ShowInTaskbar = false;
             this.Text = "Info";
-            this.TopMost = true;
             this.Load += new System.EventHandler(this.FormInfo_Load);
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();

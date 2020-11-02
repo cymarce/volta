@@ -20,6 +20,13 @@ using System.Drawing.Text;
 using log4net;
 using System.Linq.Expressions;
 using System.Windows.Forms.VisualStyles;
+using System.Security.Policy;
+using System.Text.RegularExpressions;
+
+// TODO: aggiungere una modalità per andare all'inditro al max di tot giorni durante la ricerca di un test non inviato
+
+// TODO: pulsante aggiorna per la tabella e possibilità di filtrare i recrod recuperati 
+
 
 namespace Comunicatore
 {
@@ -49,31 +56,41 @@ namespace Comunicatore
 
             log.Debug("Avvio" + '\r');
 
+            //binding della griglia
             try
             {
 
-                db = new DbTestContext();
-                //MessageBox.Show(db.Database.Connection.ConnectionString);
-                db.Tests.Load();
 
-                this.dataGridView1.DataSource = db.Tests.Local.ToBindingList();
+                db = new DbTestContext();
+
+                //db.Tests.Load();
+                //dataGridView1.DataSource = db.Tests.Local.ToBindingList();
+                var query = db.Tests.OrderByDescending(o => o.Orario).Where(o  => o.trasferito == true).Take(1000);
+                var ultimitestimportati = query.ToList();
+                dataGridView1.DataSource = ultimitestimportati;
             }
-            catch (Exception ex)
+            catch
             {
-                log.Debug(ex);
+                MessageBox.Show("Database non presente");
+                Globali.InArresto = true;
+                Load += (s, e) => Close();
+                return;
+
+                //TODO: dialogbox più uscita?
             }
 
             delgato = new tscriptDelegate(rtxtLog_AggiungiRiga);
 
             //Assegnazione valori ai controlli
             chkAbilitaFile1.Checked = Properties.Settings.Default.File1Abilitato;
+            log.Debug("File1Abilitato: " + Properties.Settings.Default.File1Abilitato);
             if (Properties.Settings.Default.File1 != "")
             {
                 tabControlForm1.TabPages[1].Text = Path.GetFileName(Properties.Settings.Default.File1);
                 txtFile1.Text = Properties.Settings.Default.File1;
-
             }
             chkAbilitaFile2.Checked = Properties.Settings.Default.File2Abilitato;
+            log.Debug("File2Abilitato: " + Properties.Settings.Default.File2Abilitato);
             if (Properties.Settings.Default.File2 != "")
             {
                 tabControlForm1.TabPages[2].Text = Path.GetFileName(Properties.Settings.Default.File2);
@@ -81,18 +98,19 @@ namespace Comunicatore
 
             }
 
+            chkMonitoraggioAutomatico.Checked = Properties.Settings.Default.MonitoraggioFile;
+            log.Debug("Monitoraggio file abilitato: " + Properties.Settings.Default.MonitoraggioFile);
+            chkInoltroAutomatico.Checked = Properties.Settings.Default.InvioAutomatico;
+            log.Debug("Invio sutomatico ablilitato: " + Properties.Settings.Default.InvioAutomatico);
 
             Globali.InAvvio = false;
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void Form1_Load(object sender, EventArgs e)
         {
-            log.Info("btn carica");
-            //CSVContext context = new CSVContext();
-            //context.Configuration.UseDatabaseNullSemantics = true;
-            //var query = from line in context.P18504_Test select line;
-            MessageBox.Show(db.Database.Connection.ConnectionString.ToString());
+            tmrAttivitàIniziali.Enabled = true;
         }
+
 
 
         void ImportaFileCsv(string filename)
@@ -104,23 +122,25 @@ namespace Comunicatore
             using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
             {
 
-                log.Info("Importazione file " + Properties.Settings.Default.File1 + '\r');
+                log.Debug("Importazione file " + Properties.Settings.Default.File1 + '\r');
 
                 //acquisizione riga per riga del csv, controllo esistenza del id di prova ed eventuale inserimento nel tabase
                 //TODO se possibile leggere all'indietro -- non è possibile
                 //TODO prescartare le righe in basa alla data, p.e. in base ad un numero massimo di giorni all'indietro
                 csv.Configuration.Delimiter = ";";
-
+                var i = 0;
 
                 try
                 {
                     var righe = csv.GetRecords<ClasseCsv>();
-
+                    var nuovirecord = 0;
+                    var nuovirecordinseriti = 0;
+                    var nuovirecordconerrori = 0;
                     try
                     {
                         foreach (ClasseCsv riga in righe)
                         {
-
+                            i += 1;
                             //verifica data
                             //
                             //
@@ -128,145 +148,184 @@ namespace Comunicatore
                             bool filtra = Properties.Settings.Default.filtragiorni;
                             if (filtra)
                             {
+                                //controllo data
+                                var data = riga.Orario;
+                                if ((DateTime.Now - data).TotalDays > Properties.Settings.Default.giorni)
                                 //se la data è filtrata si passa la prossimo record
                                 continue;
                             }
-
-
                             Guid guiddipasso = riga.guidGuiddiPassoDiProva;
                             Guid guiddiprova = riga.guidGuiddiProva;
-                            //guid = Guid.Parse(riga.guidGuiddiPasso);
 
-                            //verifica esistenza del guid prova nel database?
 
-                            try
-                            {
+                                //verifica se la riga è gia stata inserita nel database
                                 var count = db.Tests.Where(o => (o.GuidProva == riga.guidGuiddiProva) & (o.GuidPassoProva == riga.guidGuiddiPassoDiProva)).Count();
-
                                 if (count == 0)
                                 {
-                                    //inserimento del dato nel db
-                                    Test prova = new Test();
+                                //inserimento dei campi neccessari della riga csv dato nel database
+                                nuovirecord += 1;
+                                Test prova = new Test();
+                                try
+                                {
+
                                     prova.GuidProva = riga.guidGuiddiProva;
                                     prova.GuidPassoProva = riga.guidGuiddiPassoDiProva;
+                                    prova.Orario = riga.Orario;   //
                                     prova.passo = riga.passo;
                                     prova.metodo = riga.metodo;
-                                    prova.Orario = riga.Orario;
-                                    prova.esitototale = riga.esitototale;
-                                    prova.esitopasso = riga.esitopasso;
                                     prova.valore1 = riga.valore1;
                                     prova.valore1unitàdimisura = riga.valore1unitàdimisura;
                                     prova.valore2 = riga.valore2;
                                     prova.valore2unitàdimisura = riga.valore2unitàdimisura;
-                                    prova.metodo = riga.metodo;
-                                    prova.numerodiserie = riga.numerodiserie;
+                                    prova.esitopasso = riga.esitopasso;
+                                    prova.esitototale = riga.esitototale;
+                                    prova.numerodiserie = int.Parse(riga.numerodiserie);
+                                    prova.programmadiprova = riga.programmadiprova;
+                                    
                                     prova.numeroprogetto = riga.numeroprogetto;
-                                    prova.numeroprova = riga.contatoreprova;
+                                    prova.datiordine1 = Regex.Replace(riga.datiordine1, "{.*}", "");
+                                    prova.datiordine2 = Regex.Replace(riga.datiordine2, "{.*}", "");
+
                                     prova.nomecsv = Path.GetFileNameWithoutExtension(filename);
                                     prova.trasferito = false;
-
                                     db.Tests.Add(prova);
+                                    nuovirecordinseriti += 1;
+                                    log.Debug($"Riga {i} inserita");
+                                }
+                                catch (Exception ex)
+                                {
+                                    //errore di traslazione dei valori dai campi csv ai campi database, inserisco comunque il dato nel db per non riloggarlo nelle successivie importazioni
+                                    //log.Debug("errore di traslazione dei valori dai campi csv ai campi database - riga " + i);
+                                    //log.Debug(ex);
+                                    //TODO  registre il reocor se il guid è stao rilevato - se esistese la possibilità di errore fin dal guid valutare di registre la righa in altra struttura per saltarla alle sucessive acquisiioni
+                                    if (prova.GuidProva != Guid.Empty)
+                                    {
+                                        //log.Debug(prova.Orario);
+                                        prova.errore = true;
+                                        db.Tests.Add(prova);
+                                        nuovirecordconerrori += 1;
+                                        log.Warn($"Riga {i} inserita (incompleta)");
+                                    }
                                 }
                             }
-
-
-
-                            catch (Exception ex)
+                            else
                             {
-                                log.Debug(ex);
+                                //log.Debug($"Riga {i} già presente");
                             }
+
                         }
+                        log.Info($"Lettura {Path.GetFileName(filename)} -- Record Totali: {i} - Nuovi: {nuovirecord} - Inseriti {nuovirecordinseriti} - Inseriti con errori: {nuovirecordconerrori} ");
                     }
                     catch (Exception ex)
                     {
-                        log.Debug("errore importaione csv");
+                        //errore di interpretazione di uno o più campi di una riga
+                        log.Error("errore di interpretazione di uno o più campi di una riga file - csv non conforme");
                         log.Debug(ex);
                     }
                     db.SaveChanges();
-
-
                 }
                 catch (Exception ex)
                 {
-                    log.Debug("Errore apertura file csv");
+                    //errore di GetRecords
+                    log.Error("Errore apertura file csv");
                     log.Debug(ex);
                 }
-
             }
         }
 
-        void InviaTest(string filename)
+        bool InviaPrimoTestDisponible()
         {
+            Globali.InvioInCorso = true;
             //cerca un test non inviato
-            var count = db.Tests.Where(o => (o.trasferito != true)).Count();
+            var count = db.Tests.Where(o => (o.trasferito != true & o.errore != true & o.datiordine1 != "" & o.datiordine2 != "")).Select(o => o.GuidProva).Count();
             if (count == 0)
             {
-                log.Info("Nessun nuovo test trovato");
-                return;
+                log.Debug("Nessun nuovo test trovato");
+                Globali.InvioInCorso = false;
+                return true;
             }
 
             //recupero il primo guid valido
-            var guid = db.Tests.Where(o => (o.trasferito != true & o.errore != true)).Select(o => o.GuidProva).First();
+           
+            var guid = db.Tests.Where(o => (o.trasferito != true & o.errore != true & o.datiordine1 != "" & o.datiordine2 != "")).OrderBy(o=>o.Orario).Select(o => o.GuidProva).First();
             log.Info($"Test trovato: GUID {guid}");
 
-            //verifica presenza di tutte le componenti
-            var prove = db.Tests.Where(o => o.GuidProva == guid);
-            if (prove == null) return;   //non dovrebbe capitare
+
+
+            //verifica presenza di tutte le righe ncessarie per importare la prova
+            var prove = db.Tests.Where(o => o.GuidProva == guid).OrderBy(t => t.Orario);
+            if (prove == null) return true;   //non dovrebbe capitare
 
             var ok1 = prove.Where(o => o.metodo == "HVAC").Count();
             var ok2 = prove.Where(o => o.metodo == "ISO").Count();
 
             if (!(ok1 ==1  & ok2 == 1))
                 {
-                //i due test non sono presenti - marcahre il test cone fallato/inviato;
-                log.Info($"Test incompleto - tutte le voci sono contrassegato come invalido (guid {guid})");
+                //non tutte le righe sono presenti - marca le righe esistenti il test cone fallato/inviato;
+                log.Info($"Test incompleto - tutte le voci sono contrassegate come invalide e non saranno più valuate (guid {guid})");
                 foreach (Test prova in prove)
                 {
                     prova.errore = true;
                 }
                 db.SaveChanges();
-                return;
+                Globali.InvioInCorso = false;
+                return true;
             }
 
             //estrazione dati da inviare
-            string serialnumber ="";
-            string idmacchina ="";
-            string programma = "";
-            string esito = "";
-            string correnterigidità = "";
-            string tensionerigidità = "";
-            string restistenzaisolamento = "";
-            string tensioneisolamento = "";
 
+            DatiPerInvioTest Dato = new DatiPerInvioTest();
+            string esitoHVAC = "";
+            string esitoISO = "";
             foreach (Test prova in prove)
             {
                 if (prova.metodo == "ISO")
                 {
-                    serialnumber = prova.numeroprogetto.ToString() + prova.numerodiserie.ToString();
-                    idmacchina = prova.numeroprogetto.ToString();
-                    programma = Path.GetFileNameWithoutExtension(filename);
-                    esito = prova.esitototale;
-                    tensioneisolamento = prova.valore1;
-                    restistenzaisolamento = prova.valore2;
+                    Dato.nomeccsv = prova.nomecsv; //passato per voci di log
+                    Dato.guid = prova.GuidProva;  //passato per voci di log
+       
+                    Dato.tensioneisolamento = prova.valore1;
+                    Dato.restistenzaisolamento = prova.valore2;
+                    
+                    Dato.esito =  (prova.esitototale.ToLower()=="go") ? "PASS":"Fail";
+                    esitoISO = (prova.esitototale.ToLower() == "go") ? "PASS" : "Fail";
+
+                    Dato.serialnumber = prova.numerodiserie.ToString() + prova.numeroprogetto.ToString();
+                    Dato.idprogramma = prova.programmadiprova;
+                    Dato.nomeprogramma = prova.datiordine1;
+                    Dato.finalmaterial = prova.datiordine2;
                 }
                 if (prova.metodo == "HVAC")
                 {
-                    tensionerigidità = prova.valore1;
-                    correnterigidità = prova.valore2;
+                    Dato.tensionerigidità = prova.valore1;
+                    Dato.correnterigidità = prova.valore2;
+                    esitoHVAC = (prova.esitototale.ToLower() == "go") ? "PASS" : "Fail";
                 }
             }
+            Dato.descrizioneesito = $"ISO: {esitoISO} - HVAC: {esitoHVAC}";
 
             //invio dati
             try
             {
-                Globali.Invio.Invio(serialnumber, idmacchina, programma, esito, correnterigidità, tensionerigidità, restistenzaisolamento,tensioneisolamento);
+                var res = Globali.Invio.Invio(Dato);
                 //invio con successo segno come trasferiti;
+                if (res) { 
                 foreach (Test prova in prove)
                 {
-                    prova.serialegenerato = serialnumber;
+                    prova.OrarioTrasferimetno = DateTime.Now;
+                    prova.serialegenerato = Dato.serialnumber;
                     prova.trasferito = true;
                 }
                 db.SaveChanges();
+                }
+                else
+                {
+                    //invio non effettutato da imputare alla libreria (connettivita, nome server, rete, etc.)
+                    //i recrodo non vengono rimarcati e il tantativo verra ripetutto dopo aver fattto passare un intervallo più lungo;
+                    log.Warn("Invio non risucito, verra riprovato tra 60 secondi");
+                    Globali.InvioInCorso = false;
+                    return false;
+                }
             }
             catch (Exception ex)
             {
@@ -276,18 +335,33 @@ namespace Comunicatore
                 foreach (Test prova in prove)
                 {
                     prova.errore = true;
-
                 }
                 db.SaveChanges();
+                Globali.InvioInCorso = false;
+                return false;
+            }
+            
+            // aggiorna tabella con i test importati
+            try
+            { 
+            var query1 = db.Tests.Where(o => o.trasferito == true).OrderByDescending(o => o.Orario).Take(100);
+            var ultimitestimportati1 = query1.ToList();
+            bindingSource1.DataSource = ultimitestimportati1;
+            dataGridView1.DataSource = bindingSource1;
+            }
+            catch 
+            { 
+            
             }
 
-            //in caso di errore generale segnare le voci relative come invalide se individuabili
+            Globali.InvioInCorso = false;
+            return true;
         }
-
 
         private void notifyIcon1_MouseDoubleClick(object sender, MouseEventArgs e)
         {
-
+            Show();
+            WindowState = FormWindowState.Normal;
         }
 
         private void infoToolStripMenuItem_Click(object sender, EventArgs e)
@@ -320,8 +394,6 @@ namespace Comunicatore
 
             textBox.AppendText(text);
         }
-
-
 
         private void btnSelectFile1_Click(object sender, EventArgs e)
         {
@@ -357,62 +429,64 @@ namespace Comunicatore
         {
             if (!Globali.InAvvio)
             {
+                if (chkAbilitaFile1.Checked) { 
+
+                if (Properties.Settings.Default.MonitoraggioFile)
+                {
+                    fileSystemWatcher1.Path = Path.GetDirectoryName(Properties.Settings.Default.File1);
+                    fileSystemWatcher1.Filter = Path.GetFileName(Properties.Settings.Default.File1);
+                    fileSystemWatcher1.EnableRaisingEvents = true;
+                    tmrLeggiFile1.Start();
+                }
+                                }
+                else
+                {
+                    tmrLeggiFile1.Stop();
+                }
                 Properties.Settings.Default.File1Abilitato = chkAbilitaFile1.Checked;
                 Properties.Settings.Default.Save();
             }
-        }
-
-        private void button4_Click(object sender, EventArgs e)
-        {
-            db.SaveChanges();
-        }
-
-        private void button3_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                InviaTest(Properties.Settings.Default.File1);
-            }
-            catch (Exception ex)
-            {
-                log.Debug("Errore Invio Test");
-                log.Debug(ex);
-            }
-        }
-
-        //carica file
-        private void button2_Click(object sender, EventArgs e)
-        {
-            //verifica nome file estinte, abilitazione ok e file esistente.
-
-            if (!(Properties.Settings.Default.File1Abilitato))
-            {
-                log.Info("File1 non abilitato");
-                return;
-            }
-
-
-            if (!(Properties.Settings.Default.File1 != ""))
-            {
-                log.Info("File1 non configurato");
-                return;
-            }
-            if (!(File.Exists(Properties.Settings.Default.File1)))
-            {
-                log.Error("File '" + Properties.Settings.Default.File1 + "' non trovato");
-                return;
-            }
-
-            //chiamata caricamento file
-            ImportaFileCsv(Properties.Settings.Default.File1);
         }
 
         private void chkAbilitaFile2_CheckedChanged(object sender, EventArgs e)
         {
             if (!Globali.InAvvio)
             {
+                if (chkAbilitaFile2.Checked)
+                {
+
+                    if (Properties.Settings.Default.MonitoraggioFile)
+                    {
+                        fileSystemWatcher2.Path = Path.GetDirectoryName(Properties.Settings.Default.File2);
+                        fileSystemWatcher2.Filter = Path.GetFileName(Properties.Settings.Default.File2);
+                        fileSystemWatcher2.EnableRaisingEvents = true;
+                        tmrLeggiFile1.Start();
+                    }
+                }
+                else
+                {
+                    tmrLeggiFile2.Stop();
+                }
                 Properties.Settings.Default.File2Abilitato = chkAbilitaFile2.Checked;
                 Properties.Settings.Default.Save();
+            }
+        }
+
+        private void btnSalva_Click(object sender, EventArgs e)
+        {
+            db.SaveChanges();
+        }
+
+        private void btnInoltroSingoloTest_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                InviaPrimoTestDisponible();
+            }
+            catch (Exception ex)
+            {
+                log.Debug("Errore Invio Test");
+                log.Debug(ex);
             }
         }
 
@@ -453,54 +527,311 @@ namespace Comunicatore
                     
             }
         }
+
+        private void btnCancellaTutti_Click(object sender, EventArgs e)
+        {
+           
+            db.Tests.RemoveRange(db.Tests);
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (Globali.InArresto) return;
+            this.Hide();
+            e.Cancel = true;
+        }
+
+        private void Form1_Resize(object sender, EventArgs e)
+        {
+            if (this.WindowState == FormWindowState.Minimized)
+                Hide();
+        }
+
+
+        private void chiudiToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Globali.InArresto = true;
+            Application.Exit();
+        }
+
+        private void tmrInvioDati_Tick(object sender, EventArgs e)
+        {
+            bool esitoinvio;
+            tmrInvioDati.Stop();
+            try
+            {
+                if (Properties.Settings.Default.InvioAutomatico)
+                {
+                    if (!Globali.InvioInCorso)
+                    {
+                        esitoinvio = InviaPrimoTestDisponible();
+                        if (esitoinvio)
+                        {
+                            tmrInvioDati.Interval = 60 * 1000;
+                            tmrInvioDati.Start();
+                        }
+                        else
+                        {
+                            Debug.Print("Invio dati non risucito; passaggio a intervallo di 120 secondi");
+                            tmrInvioDati.Interval = 60 * 2* 1000;
+                        }
+                    }
+                }
+                else
+                {
+                    //lascio il timer disattivato
+                    return;
+                }
+            }
+            catch 
+            {
+                log.Debug("Errore sconosciuto durante l'invio automatico dei test, pasaggio ad intervalli di 60 secondi");
+                tmrInvioDati.Interval = 60 * 1000;
+            }
+            //reinnesco del timer intervallo dipendente dall'esito dell'invio
+            tmrInvioDati.Start();
+        }
+
+
+        private void fileSystemWatcher1_Changed(object sender, FileSystemEventArgs e)
+        {
+            if (!Properties.Settings.Default.File1Abilitato | !Properties.Settings.Default.MonitoraggioFile)
+            {
+                fileSystemWatcher1.EnableRaisingEvents = false;
+            }
+
+            log.Debug("modificato file " + e.Name + " (" + e.ChangeType.ToString() + ")");
+            tmrLeggiFile1.Start();
+        }
+
+        private void fileSystemWatcher2_Changed(object sender, FileSystemEventArgs e)
+        {
+            if (!Properties.Settings.Default.File2Abilitato | !Properties.Settings.Default.MonitoraggioFile)
+            {
+                fileSystemWatcher2.EnableRaisingEvents = false;
+            }
+
+            log.Debug("modificato file " + e.Name + " (" + e.ChangeType.ToString() + ")");
+            tmrLeggiFile2.Start();
+        }
+
+
+        private void apriToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.Show();
+        }
+
+        private void chkMonitoraggioAutomatico_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!Globali.InAvvio)
+            {
+                if (chkMonitoraggioAutomatico.Checked)
+                {
+                    if (chkAbilitaFile1.Checked)
+                    {
+                        fileSystemWatcher1.Path = Path.GetDirectoryName(Properties.Settings.Default.File1);
+                        fileSystemWatcher1.Filter = Path.GetFileName(Properties.Settings.Default.File1);
+                        fileSystemWatcher1.EnableRaisingEvents = true;
+                        tmrLeggiFile1.Start();
+                    }
+                    if (chkAbilitaFile2.Checked)
+                    {
+                        fileSystemWatcher2.Path = Path.GetDirectoryName(Properties.Settings.Default.File2);
+                        fileSystemWatcher2.Filter = Path.GetFileName(Properties.Settings.Default.File2);
+                        fileSystemWatcher2.EnableRaisingEvents = true;
+                        tmrLeggiFile2.Start();
+                    }
+                }
+                else
+                {
+                    tmrLeggiFile1.Stop();
+                    tmrLeggiFile2.Stop();
+                }
+                Properties.Settings.Default.MonitoraggioFile = chkMonitoraggioAutomatico.Checked;
+                Properties.Settings.Default.Save();
+                log.Debug("Monitoraggio file abilitato: " + Properties.Settings.Default.MonitoraggioFile);
+
+            }
+        }
+
+        private void chkInoltroAutomatico_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!Globali.InAvvio)
+            {
+                Properties.Settings.Default.InvioAutomatico = chkInoltroAutomatico.Checked;
+                Properties.Settings.Default.Save();
+                if (Properties.Settings.Default.InvioAutomatico)
+                {
+                    tmrInvioDati.Interval = 5 * 1000;
+                    tmrInvioDati.Start();
+                }
+                else
+                {
+                    tmrInvioDati.Stop();
+                }
+                log.Debug("Invio sutomatico ablilitato: " + Properties.Settings.Default.InvioAutomatico);
+            }
+        }
+
+        private void tmrLeggiFile1_Tick(object sender, EventArgs e)
+        {
+            tmrLeggiFile1.Stop();  //viene reinesscato da una modifica del file (systemfilewatcher) o da una riabilitazione della ceckbox
+            if (File.Exists(Properties.Settings.Default.File1))
+            {
+                log.Debug("Archivio modificato: " + Properties.Settings.Default.File1);
+                ImportaFileCsv(Properties.Settings.Default.File1);
+            }
+
+        }
+
+        private void tmrLeggiFile2_Tick(object sender, EventArgs e)
+        {
+            tmrLeggiFile2.Stop();  //viene reinesscato da una modifica del file (systemfilewatcher) o da una riabilitazione della ceckbox
+            if (File.Exists(Properties.Settings.Default.File2))
+            {
+                log.Debug("Archivio modificato: " + Properties.Settings.Default.File2);
+                ImportaFileCsv(Properties.Settings.Default.File2);
+            }
+        }
+
+        private void tmrAttivitàIniziali_Tick(object sender, EventArgs e)
+        {
+            tmrAttivitàIniziali.Stop();
+
+            if (Properties.Settings.Default.MonitoraggioFile)
+            {
+                if (Properties.Settings.Default.File1Abilitato)
+                {
+                    fileSystemWatcher1.Path = Path.GetDirectoryName(Properties.Settings.Default.File1);
+                    fileSystemWatcher1.Filter = Path.GetFileName(Properties.Settings.Default.File1);
+                    fileSystemWatcher1.EnableRaisingEvents = true;
+                    tmrLeggiFile1.Start();
+                }
+                if (Properties.Settings.Default.File2Abilitato)
+                {
+                    fileSystemWatcher2.Path = Path.GetDirectoryName(Properties.Settings.Default.File2);
+                    fileSystemWatcher2.Filter = Path.GetFileName(Properties.Settings.Default.File2);
+                    fileSystemWatcher2.EnableRaisingEvents = true;
+                    tmrLeggiFile2.Start();
+                }
+            }
+
+                if (Properties.Settings.Default.InvioAutomatico)
+                {
+                    tmrInvioDati.Interval = 5 * 1000;
+                    tmrInvioDati.Start();
+                }
+            
+        }
+
+        private void btnLeggiFile1_Click(object sender, EventArgs e)
+        {
+            if (File.Exists(Properties.Settings.Default.File1))
+            {
+                log.Debug("acquisizione " + Properties.Settings.Default.File1);
+                ImportaFileCsv(Properties.Settings.Default.File1);
+            }
+            else
+            {
+                MessageBox.Show("Selezionare un file e salvare l'impostazione");
+            }
+        }
+
+        private void btnLeggiFile2_Click(object sender, EventArgs e)
+        {
+            if (File.Exists(Properties.Settings.Default.File2))
+            {
+                log.Debug("acquisizione " + Properties.Settings.Default.File2);
+                ImportaFileCsv(Properties.Settings.Default.File2);
+            }
+            else
+            {
+                MessageBox.Show("Selezionare un file e salvare l'impostazione");
+            }
+        }
+
+        private void debugToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (debugToolStripMenuItem.Checked)
+            {
+                debugToolStripMenuItem.Checked = false;
+                btnCancellaTutti.Visible = false;
+                btnSalva.Visible = false;
+                dataGridView1.ReadOnly = true;
+            }
+            else
+            {
+                debugToolStripMenuItem.Checked = true;
+                btnCancellaTutti.Visible = true;
+                btnSalva.Visible = true;
+                dataGridView1.ReadOnly = false;
+            }
+        }
+
+
+        private void visualizzaTuttiIRecordToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            db.Tests.Load();
+            dataGridView1.DataSource = db.Tests.Local.ToBindingList();
+        }
+
+        private void visualizzaUltimiRecordImporatiToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var query = db.Tests.OrderByDescending(o => o.Orario).Take(1000);
+            var ultimitestimportati = query.ToList();
+            bindingSource1.DataSource = ultimitestimportati;
+            dataGridView1.DataSource = ultimitestimportati;
+        }
+
+        private void visualizzaUltimiRecordTrasferitiToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var query = db.Tests.OrderByDescending(o => o.Orario).Where(o => o.trasferito == true).Take(1000);
+            var ultimitestimportati = query.ToList();
+            bindingSource1.DataSource = ultimitestimportati;
+            dataGridView1.DataSource = ultimitestimportati;
+        }
+
+        private void visualizzaUltimiRecordConErroriToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var query = db.Tests.OrderByDescending(o => o.Orario).Where(o => o.errore == true).Take(1000);
+            var ultimitestimportati = query.ToList();
+            bindingSource1.DataSource = ultimitestimportati;
+            dataGridView1.DataSource = ultimitestimportati;
+        }
+
+        private void esciToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Globali.InArresto = true;
+            Application.Exit();
+        }
+
+        private void visualizzaDebugToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            TextBoxAppender app = null;
+            foreach (var appender in LogManager.GetRepository().GetAppenders())
+            {
+                if (appender.GetType() == typeof(TextBoxAppender))
+                    app = (TextBoxAppender)appender;
+            }
+            if (app == null) return;
+
+            if (visualizzaDebugToolStripMenuItem.Checked)
+            {
+                    app.Threshold = log4net.Core.Level.Debug;
+            }
+            else
+            {
+                    app.Threshold = log4net.Core.Level.Info;
+            }
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            Process.Start(new ProcessStartInfo("StartManager.exe"));
+        }
+    }
     }
 
 
 
 
-
-    public class TestOld
-    {
-        [System.ComponentModel.DataAnnotations.Key, Column(Order = 0)]
-        public Guid GuidProva { get; set; }
-
-        [System.ComponentModel.DataAnnotations.Key, Column(Order = 1)]
-        public Guid GuidPassoProva { get; set; }
-
-        public string metodo { get; set; }
-
-        public int chiavedimetodo { get; set; }
-
-        public int passo { get; set; }
-
-        public DateTime Orario { get; set; }
-
-        public string esitopasso { get; set; }
-
-        public int chiaveesitopasso { get; set; }
-
-        public string esitototale { get; set; }
-
-        public int chiavesitototale { get; set; }
-
-        public float valore1 { get; set; }
-
-        public string valore1unitàdimisura { get; set; }
-
-        public float valore2 { get; set; }
-
-        public string valore2unitàdimisura { get; set; }
-
-        public int numerodiserie { get; set; }
-
-        public int numeroprogetto { get; set; }
-
-        public string barcode { get; set; }
-
-        public int numeroprova { get; set; }
-
-        public string nomecsv { get; set; }
-
-        public bool trasferito { get; set; }
-    }
-}

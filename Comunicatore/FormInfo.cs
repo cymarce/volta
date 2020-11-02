@@ -1,4 +1,5 @@
 ﻿using System;
+using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -24,6 +25,11 @@ namespace Comunicatore
             lbldata.Text = RetriveLinkerTimestamp(System.Reflection.Assembly.GetEntryAssembly().Location).ToString();
             lnklblAppConfigFile.Text = System.Configuration.ConfigurationManager.OpenExeConfiguration(System.Configuration.ConfigurationUserLevel.None).FilePath;
             lnklblUserConfigFile.Text = System.Configuration.ConfigurationManager.OpenExeConfiguration(System.Configuration.ConfigurationUserLevel.PerUserRoamingAndLocal).FilePath;
+
+
+            var temp = Application.CompanyName;
+         
+                
         }
 
         private void lnklblUserConfigFile_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)

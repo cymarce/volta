@@ -62,16 +62,10 @@
     <appender-ref ref="TextBoxAppender" />
     <appender-ref ref="ConsoleAppender" />
   </root>
-  <logger name="moduloImportazionePrezzi" additivity="false">
-    <level value="ALL" />
-    <appender-ref ref="RollingLogFileAppender"/>
-    <appender-ref ref="TextBoxAppender" />
-    <appender-ref ref="ConsoleAppender" />
-  </logger>
   <logger name="LoggerInvioMail" additivity="false">
     <level value="ALL" />
     <appender-ref ref="ConsoleAppender" />
     <appender-ref  ref="SmtpAppender"/>
   </logger>
-  
+ 
 </log4net>

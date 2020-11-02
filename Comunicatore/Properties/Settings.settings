@@ -14,7 +14,7 @@
     <Setting Name="File3" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="Monitor" Type="System.Boolean" Scope="User">
+    <Setting Name="MonitoraggioFile" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="InvioAutomatico" Type="System.Boolean" Scope="User">
@@ -28,6 +28,9 @@
     </Setting>
     <Setting Name="File3Abilitato" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="giorni" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">10</Value>
     </Setting>
   </Settings>
 </SettingsFile>
